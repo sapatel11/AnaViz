@@ -23,4 +23,5 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  @apply bg-gradient-to-br from-yellow-100 via-orange-100 to-amber-100
 }
