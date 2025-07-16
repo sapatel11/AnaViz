@@ -6,20 +6,32 @@ const UploadSection = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<string[][] | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    setFileName(file.name);
+  setFileName(file.name);
 
-    // TODO: Replace with real API call later
-    setPreviewData([
-      ["Name", "Age", "Country"],
-      ["Alice", "30", "USA"],
-      ["Bob", "25", "Canada"],
-      ["Charlie", "35", "UK"],
-    ]);
-  };
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await fetch("http://localhost:8000/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Upload failed");
+    }
+
+    const result = await response.json();
+    setPreviewData(result.preview); // server returns: { filename, preview }
+  } catch (err) {
+    console.error("Error uploading file:", err);
+  }
+};
+
 
   return (
     <div className="max-w-3xl mx-auto text-center">
