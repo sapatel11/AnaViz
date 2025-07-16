@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const UploadSection = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<string[][] | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+
   const file = e.target.files?.[0];
   if (!file) return;
 
@@ -26,12 +28,15 @@ const UploadSection = () => {
     }
 
     const result = await response.json();
-    setPreviewData(result.preview); // server returns: { filename, preview }
+    setPreviewData(result.preview);
+    setFileName(result.filename); // server returns: { filename, preview }
+    router.push(`/trial?session_id=${result.session_id}`);
   } catch (err) {
     console.error("Error uploading file:", err);
   }
 };
 
+const router = useRouter();
 
   return (
     <div className="max-w-3xl mx-auto text-center">
