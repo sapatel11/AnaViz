@@ -1,12 +1,11 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 const UploadSection = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<string[][] | null>(null);
-
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const file = e.target.files?.[0];
@@ -30,13 +29,11 @@ const UploadSection = () => {
     const result = await response.json();
     setPreviewData(result.preview);
     setFileName(result.filename); // server returns: { filename, preview }
-    router.push(`/trial?session_id=${result.session_id}`);
+    setSessionId(result.session_id);
   } catch (err) {
     console.error("Error uploading file:", err);
   }
 };
-
-const router = useRouter();
 
   return (
     <div className="max-w-3xl mx-auto text-center">
@@ -74,10 +71,10 @@ const router = useRouter();
           </div>
         </>
       )}
-      {previewData && (
+      {previewData && sessionId && (
         <div className="mt-6">
             <Link
-            href="/trial"
+            href={`/trial?sessionId=${sessionId}`}
             className="inline-block bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-full font-semibold transition"
             >
             Try in Trial Space
