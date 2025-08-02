@@ -30,38 +30,76 @@ const LineGraphComponent: React.FC<LineGraphProps> = ({ data, xKey, yKey }) => {
       {
         label: yKey,
         data: values,
-        borderColor: "rgba(59, 130, 246, 1)",
-        backgroundColor: "rgba(59, 130, 246, 0.1)",
-        borderWidth: 2,
-        pointBackgroundColor: "rgba(59, 130, 246, 1)",
+        borderColor: "rgba(245, 158, 11, 1)",
+        backgroundColor: "rgba(245, 158, 11, 0.1)",
+        borderWidth: 3,
+        pointBackgroundColor: "rgba(245, 158, 11, 1)",
         pointBorderColor: "#ffffff",
         pointBorderWidth: 2,
-        pointRadius: 4,
-        tension: 0.1,
+        pointRadius: 5,
+        tension: 0.2,
+        fill: true,
       },
     ],
   };
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top" as const },
+      legend: { 
+        position: "top" as const,
+        labels: {
+          color: "#92400e",
+          font: {
+            size: 14,
+            weight: "bold" as const
+          }
+        }
+      },
       title: {
         display: true,
-        text: "Line Graph",
+        text: `${yKey} over ${xKey}`,
+        color: "#92400e",
+        font: {
+          size: 18,
+          weight: "bold" as const
+        }
       },
     },
     scales: {
+      x: {
+        ticks: {
+          color: "#92400e",
+          font: {
+            size: 12
+          }
+        },
+        grid: {
+          color: "rgba(245, 158, 11, 0.1)"
+        }
+      },
       y: {
         beginAtZero: true,
+        ticks: {
+          color: "#92400e",
+          font: {
+            size: 12
+          }
+        },
+        grid: {
+          color: "rgba(245, 158, 11, 0.1)"
+        }
       },
     },
   };
 
   return (
-    <div className="w-full h-[400px] p-4 shadow rounded-lg border">
-      <h2 className="text-lg font-semibold text-blue-500 mb-2">Line Graph</h2>
-      <Line data={chartData} options={options} />
+    <div className="w-full h-[400px] p-6 bg-white rounded-xl shadow-lg border border-amber-200">
+      <h2 className="text-xl font-bold text-amber-600 mb-4">Line Graph</h2>
+      <div className="h-[320px]">
+        <Line data={chartData} options={options} />
+      </div>
     </div>
   );
 };

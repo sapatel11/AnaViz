@@ -59,6 +59,8 @@ async def get_statistical_summary(file: UploadFile = File(...)):
     contents = await file.read()
     df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
     summary = df.describe(include="all").fillna("").to_dict()
+    # Convert numpy types to native Python types
+    summary = {k: {kk: float(vv) if isinstance(vv, (int, float)) else str(vv) for kk, vv in v.items()} for k, v in summary.items()}
     return {"summary": summary}
 
 @app.post("/api/missing-data-overview")
@@ -66,6 +68,8 @@ async def get_missing_data(file: UploadFile = File(...)):
     contents = await file.read()
     df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
     missing_data = df.isnull().sum().to_dict()
+    # Convert numpy types to native Python types
+    missing_data = {k: int(v) for k, v in missing_data.items()}
     return {"missing_data": missing_data}
 
 @app.post("/api/outlier-detection")
@@ -83,7 +87,7 @@ async def get_outlier_data(file: UploadFile = File(...)):
         lower_bound = Q1 - 1.5 * IQR
         upper_bound = Q3 + 1.5 * IQR
         outliers = numeric_df[(numeric_df[col] < lower_bound) | (numeric_df[col] > upper_bound)]
-        outlier_counts[col] = len(outliers)
+        outlier_counts[col] = int(len(outliers))  # Convert to native Python int
 
     return {"outliers": outlier_counts}
 
@@ -92,6 +96,8 @@ async def get_correlation_matrix(file: UploadFile = File(...)):
     contents = await file.read()
     df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
     corr_matrix = df.corr(numeric_only=True).fillna(0).round(3).to_dict()
+    # Convert numpy types to native Python types
+    corr_matrix = {k: {kk: float(vv) for kk, vv in v.items()} for k, v in corr_matrix.items()}
     return {"correlation_matrix": corr_matrix}
 
 @app.get("/api/statistical-summary")
@@ -178,12 +184,19 @@ async def create_bar_chart(file: UploadFile = File(...), xKey: str = Query(...),
     if xKey not in df.columns or yKey not in df.columns:
         return JSONResponse(status_code=400, content={"error": "Invalid column names"})
     
+    # Group by xKey and aggregate yKey values
+    # For numeric yKey, calculate mean; for non-numeric, count occurrences
+    if pd.api.types.is_numeric_dtype(df[yKey]):
+        grouped_data = df.groupby(xKey)[yKey].mean().reset_index()
+    else:
+        grouped_data = df.groupby(xKey).size().reset_index(name=yKey)
+    
     # Convert data to format expected by frontend
     chart_data = []
-    for _, row in df.iterrows():
+    for _, row in grouped_data.iterrows():
         chart_data.append({
-            xKey: row[xKey],
-            yKey: row[yKey]
+            xKey: str(row[xKey]) if pd.notna(row[xKey]) else str(row[xKey]),
+            yKey: float(row[yKey]) if pd.notna(row[yKey]) else 0.0
         })
     
     return {"data": chart_data, "xKey": xKey, "yKey": yKey}
@@ -201,12 +214,19 @@ async def get_bar_chart(sessionId: str = Query(...), xKey: str = Query(...), yKe
     if xKey not in df.columns or yKey not in df.columns:
         return JSONResponse(status_code=400, content={"error": "Invalid column names"})
     
+    # Group by xKey and aggregate yKey values
+    # For numeric yKey, calculate mean; for non-numeric, count occurrences
+    if pd.api.types.is_numeric_dtype(df[yKey]):
+        grouped_data = df.groupby(xKey)[yKey].mean().reset_index()
+    else:
+        grouped_data = df.groupby(xKey).size().reset_index(name=yKey)
+    
     # Convert data to format expected by frontend
     chart_data = []
-    for _, row in df.iterrows():
+    for _, row in grouped_data.iterrows():
         chart_data.append({
-            xKey: row[xKey],
-            yKey: row[yKey]
+            xKey: str(row[xKey]) if pd.notna(row[xKey]) else str(row[xKey]),
+            yKey: float(row[yKey]) if pd.notna(row[yKey]) else 0.0
         })
     
     return {"data": chart_data, "xKey": xKey, "yKey": yKey}
@@ -221,12 +241,25 @@ async def create_line_graph(file: UploadFile = File(...), xKey: str = Query(...)
     if xKey not in df.columns or yKey not in df.columns:
         return JSONResponse(status_code=400, content={"error": "Invalid column names"})
     
+    # Sort by xKey for line graph
+    df = df.sort_values(xKey)
+    
     # Convert data to format expected by frontend
     chart_data = []
     for _, row in df.iterrows():
+        # Handle different data types for yKey
+        y_value = row[yKey]
+        if pd.notna(y_value):
+            if pd.api.types.is_numeric_dtype(df[yKey]):
+                y_value = float(y_value)
+            else:
+                y_value = str(y_value)
+        else:
+            y_value = 0.0 if pd.api.types.is_numeric_dtype(df[yKey]) else ""
+        
         chart_data.append({
-            xKey: row[xKey],
-            yKey: row[yKey]
+            xKey: str(row[xKey]) if pd.notna(row[xKey]) else str(row[xKey]),
+            yKey: y_value
         })
     
     return {"data": chart_data, "xKey": xKey, "yKey": yKey}
@@ -244,12 +277,25 @@ async def get_line_graph(sessionId: str = Query(...), xKey: str = Query(...), yK
     if xKey not in df.columns or yKey not in df.columns:
         return JSONResponse(status_code=400, content={"error": "Invalid column names"})
     
+    # Sort by xKey for line graph
+    df = df.sort_values(xKey)
+    
     # Convert data to format expected by frontend
     chart_data = []
     for _, row in df.iterrows():
+        # Handle different data types for yKey
+        y_value = row[yKey]
+        if pd.notna(y_value):
+            if pd.api.types.is_numeric_dtype(df[yKey]):
+                y_value = float(y_value)
+            else:
+                y_value = str(y_value)
+        else:
+            y_value = 0.0 if pd.api.types.is_numeric_dtype(df[yKey]) else ""
+        
         chart_data.append({
-            xKey: row[xKey],
-            yKey: row[yKey]
+            xKey: str(row[xKey]) if pd.notna(row[xKey]) else str(row[xKey]),
+            yKey: y_value
         })
     
     return {"data": chart_data, "xKey": xKey, "yKey": yKey}
@@ -267,9 +313,29 @@ async def create_scatter_plot(file: UploadFile = File(...), xKey: str = Query(..
     # Convert data to format expected by frontend
     chart_data = []
     for _, row in df.iterrows():
+        # Handle different data types for xKey and yKey
+        x_value = row[xKey]
+        y_value = row[yKey]
+        
+        if pd.notna(x_value):
+            if pd.api.types.is_numeric_dtype(df[xKey]):
+                x_value = float(x_value)
+            else:
+                x_value = str(x_value)
+        else:
+            x_value = 0.0 if pd.api.types.is_numeric_dtype(df[xKey]) else ""
+            
+        if pd.notna(y_value):
+            if pd.api.types.is_numeric_dtype(df[yKey]):
+                y_value = float(y_value)
+            else:
+                y_value = str(y_value)
+        else:
+            y_value = 0.0 if pd.api.types.is_numeric_dtype(df[yKey]) else ""
+        
         chart_data.append({
-            xKey: row[xKey],
-            yKey: row[yKey]
+            xKey: x_value,
+            yKey: y_value
         })
     
     return {"data": chart_data, "xKey": xKey, "yKey": yKey}
@@ -290,9 +356,29 @@ async def get_scatter_plot(sessionId: str = Query(...), xKey: str = Query(...), 
     # Convert data to format expected by frontend
     chart_data = []
     for _, row in df.iterrows():
+        # Handle different data types for xKey and yKey
+        x_value = row[xKey]
+        y_value = row[yKey]
+        
+        if pd.notna(x_value):
+            if pd.api.types.is_numeric_dtype(df[xKey]):
+                x_value = float(x_value)
+            else:
+                x_value = str(x_value)
+        else:
+            x_value = 0.0 if pd.api.types.is_numeric_dtype(df[xKey]) else ""
+            
+        if pd.notna(y_value):
+            if pd.api.types.is_numeric_dtype(df[yKey]):
+                y_value = float(y_value)
+            else:
+                y_value = str(y_value)
+        else:
+            y_value = 0.0 if pd.api.types.is_numeric_dtype(df[yKey]) else ""
+        
         chart_data.append({
-            xKey: row[xKey],
-            yKey: row[yKey]
+            xKey: x_value,
+            yKey: y_value
         })
     
     return {"data": chart_data, "xKey": xKey, "yKey": yKey}
@@ -307,13 +393,19 @@ async def create_heatmap(file: UploadFile = File(...), xKey: str = Query(...), y
     if xKey not in df.columns or yKey not in df.columns or valueKey not in df.columns:
         return JSONResponse(status_code=400, content={"error": "Invalid column names"})
     
+    # Group by xKey and yKey, aggregate valueKey
+    if pd.api.types.is_numeric_dtype(df[valueKey]):
+        grouped_data = df.groupby([xKey, yKey])[valueKey].mean().reset_index()
+    else:
+        grouped_data = df.groupby([xKey, yKey]).size().reset_index(name=valueKey)
+    
     # Convert data to format expected by frontend
     chart_data = []
-    for _, row in df.iterrows():
+    for _, row in grouped_data.iterrows():
         chart_data.append({
-            xKey: row[xKey],
-            yKey: row[yKey],
-            valueKey: row[valueKey]
+            xKey: str(row[xKey]) if pd.notna(row[xKey]) else str(row[xKey]),
+            yKey: str(row[yKey]) if pd.notna(row[yKey]) else str(row[yKey]),
+            valueKey: float(row[valueKey]) if pd.notna(row[valueKey]) else 0.0
         })
     
     return {"data": chart_data, "xKey": xKey, "yKey": yKey, "valueKey": valueKey}
@@ -331,13 +423,19 @@ async def get_heatmap(sessionId: str = Query(...), xKey: str = Query(...), yKey:
     if xKey not in df.columns or yKey not in df.columns or valueKey not in df.columns:
         return JSONResponse(status_code=400, content={"error": "Invalid column names"})
     
+    # Group by xKey and yKey, aggregate valueKey
+    if pd.api.types.is_numeric_dtype(df[valueKey]):
+        grouped_data = df.groupby([xKey, yKey])[valueKey].mean().reset_index()
+    else:
+        grouped_data = df.groupby([xKey, yKey]).size().reset_index(name=valueKey)
+    
     # Convert data to format expected by frontend
     chart_data = []
-    for _, row in df.iterrows():
+    for _, row in grouped_data.iterrows():
         chart_data.append({
-            xKey: row[xKey],
-            yKey: row[yKey],
-            valueKey: row[valueKey]
+            xKey: str(row[xKey]) if pd.notna(row[xKey]) else str(row[xKey]),
+            yKey: str(row[yKey]) if pd.notna(row[yKey]) else str(row[yKey]),
+            valueKey: float(row[valueKey]) if pd.notna(row[valueKey]) else 0.0
         })
     
     return {"data": chart_data, "xKey": xKey, "yKey": yKey, "valueKey": valueKey}

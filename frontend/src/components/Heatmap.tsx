@@ -40,13 +40,19 @@ const HeatmapComponent: React.FC<HeatmapProps> = ({ data, xKey, yKey, valueKey }
     const minValue = Math.min(...allValues);
     const maxValue = Math.max(...allValues);
 
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    const cellWidth = canvasWidth / xValues.length;
-    const cellHeight = canvasHeight / yValues.length;
+    // Set canvas size with padding for labels
+    const padding = 60;
+    const chartWidth = 500;
+    const chartHeight = 400;
+    canvas.width = chartWidth + padding * 2;
+    canvas.height = chartHeight + padding * 2;
 
-    // Clear canvas
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    const cellWidth = chartWidth / xValues.length;
+    const cellHeight = chartHeight / yValues.length;
+
+    // Clear canvas with background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw heatmap cells
     for (let i = 0; i < yValues.length; i++) {
@@ -54,44 +60,55 @@ const HeatmapComponent: React.FC<HeatmapProps> = ({ data, xKey, yKey, valueKey }
         const value = matrix[i][j];
         const normalizedValue = (value - minValue) / (maxValue - minValue);
         
-        // Create color gradient from blue (low) to red (high)
-        const red = Math.round(255 * normalizedValue);
-        const blue = Math.round(255 * (1 - normalizedValue));
-        const green = 0;
+        // Create color gradient from light amber to dark orange
+        const r = Math.round(255 * (0.2 + 0.8 * normalizedValue));
+        const g = Math.round(255 * (0.8 - 0.6 * normalizedValue));
+        const b = Math.round(255 * (0.2 - 0.2 * normalizedValue));
         
-        ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
-        ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(
+          padding + j * cellWidth, 
+          padding + i * cellHeight, 
+          cellWidth, 
+          cellHeight
+        );
         
-        // Add border
-        ctx.strokeStyle = "#ffffff";
+        // Add subtle border
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
         ctx.lineWidth = 1;
-        ctx.strokeRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+        ctx.strokeRect(
+          padding + j * cellWidth, 
+          padding + i * cellHeight, 
+          cellWidth, 
+          cellHeight
+        );
         
-        // Add value text
+        // Add value text with better contrast
         if (value > 0) {
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "12px Arial";
+          const textColor = normalizedValue > 0.5 ? "#ffffff" : "#000000";
+          ctx.fillStyle = textColor;
+          ctx.font = "bold 14px Arial";
           ctx.textAlign = "center";
           ctx.fillText(
-            value.toString(),
-            j * cellWidth + cellWidth / 2,
-            i * cellHeight + cellHeight / 2 + 4
+            value.toLocaleString(),
+            padding + j * cellWidth + cellWidth / 2,
+            padding + i * cellHeight + cellHeight / 2 + 5
           );
         }
       }
     }
 
-    // Draw axis labels
-    ctx.fillStyle = "#000000";
-    ctx.font = "14px Arial";
+    // Draw axis labels with better styling
+    ctx.fillStyle = "#92400e";
+    ctx.font = "bold 16px Arial";
     ctx.textAlign = "center";
     
     // X-axis labels
     for (let j = 0; j < xValues.length; j++) {
       ctx.fillText(
         xValues[j],
-        j * cellWidth + cellWidth / 2,
-        canvasHeight - 5
+        padding + j * cellWidth + cellWidth / 2,
+        canvas.height - 20
       );
     }
     
@@ -100,29 +117,37 @@ const HeatmapComponent: React.FC<HeatmapProps> = ({ data, xKey, yKey, valueKey }
     for (let i = 0; i < yValues.length; i++) {
       ctx.fillText(
         yValues[i],
-        5,
-        i * cellHeight + cellHeight / 2 + 4
+        padding - 10,
+        padding + i * cellHeight + cellHeight / 2 + 5
       );
     }
+
+    // Draw title
+    ctx.fillStyle = "#92400e";
+    ctx.font = "bold 18px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      `${valueKey} by ${xKey} and ${yKey}`,
+      canvas.width / 2,
+      25
+    );
 
   }, [data, xKey, yKey, valueKey]);
 
   return (
-    <div className="w-full h-[400px] p-4 shadow rounded-lg border">
-      <h2 className="text-lg font-semibold text-purple-500 mb-2">Heatmap</h2>
-      <div className="flex justify-center items-center h-full">
+    <div className="w-full p-6 bg-white rounded-xl shadow-lg border border-amber-200">
+      <h2 className="text-xl font-bold text-amber-600 mb-4">Heatmap</h2>
+      <div className="flex flex-col items-center">
         <canvas
           ref={canvasRef}
-          width={400}
-          height={300}
-          className="border border-gray-300"
+          className="border border-amber-300 rounded-lg shadow-md mb-4"
         />
-      </div>
-      <div className="mt-2 text-sm text-gray-600 text-center">
-        <span className="inline-block w-4 h-4 bg-blue-500 mr-1"></span>
-        Low
-        <span className="inline-block w-4 h-4 bg-red-500 ml-4 mr-1"></span>
-        High
+        <div className="text-sm text-amber-700 text-center">
+          <span className="inline-block w-4 h-4 bg-amber-300 mr-1 rounded"></span>
+          Low
+          <span className="inline-block w-4 h-4 bg-orange-600 ml-4 mr-1 rounded"></span>
+          High
+        </div>
       </div>
     </div>
   );

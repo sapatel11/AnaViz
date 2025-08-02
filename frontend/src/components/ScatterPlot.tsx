@@ -30,22 +30,37 @@ const ScatterPlotComponent: React.FC<ScatterPlotProps> = ({ data, xKey, yKey }) 
       {
         label: `${yKey} vs ${xKey}`,
         data: scatterData,
-        backgroundColor: "rgba(16, 185, 129, 0.7)",
-        borderColor: "rgba(16, 185, 129, 1)",
-        borderWidth: 1,
+        backgroundColor: "rgba(245, 158, 11, 0.7)",
+        borderColor: "rgba(245, 158, 11, 1)",
+        borderWidth: 2,
         pointRadius: 6,
-        pointHoverRadius: 8,
+        pointHoverRadius: 10,
       },
     ],
   };
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top" as const },
+      legend: { 
+        position: "top" as const,
+        labels: {
+          color: "#92400e",
+          font: {
+            size: 14,
+            weight: "bold" as const
+          }
+        }
+      },
       title: {
         display: true,
-        text: "Scatter Plot",
+        text: `${yKey} vs ${xKey}`,
+        color: "#92400e",
+        font: {
+          size: 18,
+          weight: "bold" as const
+        }
       },
     },
     scales: {
@@ -55,7 +70,21 @@ const ScatterPlotComponent: React.FC<ScatterPlotProps> = ({ data, xKey, yKey }) 
         title: {
           display: true,
           text: xKey,
+          color: "#92400e",
+          font: {
+            size: 14,
+            weight: "bold" as const
+          }
         },
+        ticks: {
+          color: "#92400e",
+          font: {
+            size: 12
+          }
+        },
+        grid: {
+          color: "rgba(245, 158, 11, 0.1)"
+        }
       },
       y: {
         type: "linear" as const,
@@ -63,15 +92,31 @@ const ScatterPlotComponent: React.FC<ScatterPlotProps> = ({ data, xKey, yKey }) 
         title: {
           display: true,
           text: yKey,
+          color: "#92400e",
+          font: {
+            size: 14,
+            weight: "bold" as const
+          }
         },
+        ticks: {
+          color: "#92400e",
+          font: {
+            size: 12
+          }
+        },
+        grid: {
+          color: "rgba(245, 158, 11, 0.1)"
+        }
       },
     },
   };
 
   return (
-    <div className="w-full h-[400px] p-4 shadow rounded-lg border">
-      <h2 className="text-lg font-semibold text-green-500 mb-2">Scatter Plot</h2>
-      <Scatter data={chartData} options={options} />
+    <div className="w-full h-[400px] p-6 bg-white rounded-xl shadow-lg border border-amber-200">
+      <h2 className="text-xl font-bold text-amber-600 mb-4">Scatter Plot</h2>
+      <div className="h-[320px]">
+        <Scatter data={chartData} options={options} />
+      </div>
     </div>
   );
 };

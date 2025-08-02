@@ -19,7 +19,7 @@ import HeatmapComponent from "@/components/Heatmap";
 type StatisticalSummaryData = Record<string, Record<string, string | number>>;
 type VisualizationData = { [key: string]: string | number }[];
 type AnalysisResult = {
-  type: 'table' | 'heatmap' | 'missing_data' | 'outlier_table' | 'bar_chart' | 'line_graph' | 'scatter_plot' | 'heatmap';
+  type: 'table' | 'correlation_heatmap' | 'missing_data' | 'outlier_table' | 'bar_chart' | 'line_graph' | 'scatter_plot' | 'custom_heatmap';
   data: StatisticalSummaryData | VisualizationData;
   xKey?: string;
   yKey?: string;
@@ -87,12 +87,12 @@ const TrialPage = () => {
           type: "table",
           data: result.summary,
         });
-      } else if (selectedAnalysis === "correlation") {
-        const result = await fetchCorrelationMatrix(sessionId);
-        setAnalysisResult({
-          type: "heatmap",
-          data: result.data,
-        });
+             } else if (selectedAnalysis === "correlation") {
+         const result = await fetchCorrelationMatrix(sessionId);
+         setAnalysisResult({
+           type: "correlation_heatmap",
+           data: result.data,
+         });
       } else if (selectedAnalysis === "missing") {
         const result = await fetchMissingDataOverview(sessionId);
         setAnalysisResult({
@@ -129,15 +129,15 @@ const TrialPage = () => {
           xKey: result.xKey,
           yKey: result.yKey,
         });
-      } else if (selectedAnalysis === "heatmap" && selectedXKey && selectedYKey && selectedValueKey) {
-        const result = await fetchHeatmap(sessionId, selectedXKey, selectedYKey, selectedValueKey);
-        setAnalysisResult({
-          type: "heatmap",
-          data: result.data,
-          xKey: result.xKey,
-          yKey: result.yKey,
-          valueKey: result.valueKey,
-        });
+             } else if (selectedAnalysis === "heatmap" && selectedXKey && selectedYKey && selectedValueKey) {
+         const result = await fetchHeatmap(sessionId, selectedXKey, selectedYKey, selectedValueKey);
+         setAnalysisResult({
+           type: "custom_heatmap",
+           data: result.data,
+           xKey: result.xKey,
+           yKey: result.yKey,
+           valueKey: result.valueKey,
+         });
       }
     };
 
@@ -152,68 +152,68 @@ const TrialPage = () => {
 
       {/* Column Selector */}
       {isVisualization && previewData && (
-        <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-6 py-6">
           <div className="max-w-5xl mx-auto">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Select Columns for {selectedAnalysis?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <h3 className="text-xl font-bold text-amber-700 mb-6">Select Columns for {selectedAnalysis?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-amber-700 mb-3">
                   X-Axis Column
                 </label>
                 <select
                   value={selectedXKey}
                   onChange={(e) => setSelectedXKey(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 font-medium transition-colors hover:border-amber-300"
                 >
-                  <option value="">Select X column</option>
+                  <option value="" className="text-amber-600">Select X column</option>
                   {previewData[0].map((col, i) => (
-                    <option key={i} value={col}>{col}</option>
+                    <option key={i} value={col} className="text-amber-800">{col}</option>
                   ))}
                 </select>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-amber-700 mb-3">
                   Y-Axis Column
                 </label>
                 <select
                   value={selectedYKey}
                   onChange={(e) => setSelectedYKey(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 font-medium transition-colors hover:border-amber-300"
                 >
-                  <option value="">Select Y column</option>
+                  <option value="" className="text-amber-600">Select Y column</option>
                   {previewData[0].map((col, i) => (
-                    <option key={i} value={col}>{col}</option>
+                    <option key={i} value={col} className="text-amber-800">{col}</option>
                   ))}
                 </select>
               </div>
 
               {isHeatmap && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-amber-700 mb-3">
                     Value Column
                   </label>
                   <select
                     value={selectedValueKey}
                     onChange={(e) => setSelectedValueKey(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 font-medium transition-colors hover:border-amber-300"
                   >
-                    <option value="">Select value column</option>
+                    <option value="" className="text-amber-600">Select value column</option>
                     {previewData[0].map((col, i) => (
-                      <option key={i} value={col}>{col}</option>
+                      <option key={i} value={col} className="text-amber-800">{col}</option>
                     ))}
                   </select>
                 </div>
               )}
             </div>
             
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-amber-700">
                 {isVisualization && !selectedXKey && !selectedYKey && (
-                  <p className="text-amber-600">Please select X and Y columns to generate the visualization.</p>
+                  <p className="text-amber-600 font-medium">Please select X and Y columns to generate the visualization.</p>
                 )}
                 {isHeatmap && !selectedValueKey && (
-                  <p className="text-amber-600">Please select a value column for the heatmap.</p>
+                  <p className="text-amber-600 font-medium">Please select a value column for the heatmap.</p>
                 )}
               </div>
               
@@ -229,10 +229,10 @@ const TrialPage = () => {
                   window.location.href = url.toString();
                 }}
                 disabled={!selectedXKey || !selectedYKey || (isHeatmap && !selectedValueKey)}
-                className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 ${
                   (!selectedXKey || !selectedYKey || (isHeatmap && !selectedValueKey))
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-amber-500 text-white hover:bg-amber-600'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:scale-105'
                 }`}
               >
                 Generate Chart
@@ -276,9 +276,9 @@ const TrialPage = () => {
             <StatisticalSummary data={analysisResult.data as StatisticalSummaryData} />
           )}
 
-          {analysisResult.type === "heatmap" && (
-            <CorrelationMatrix data={analysisResult.data as StatisticalSummaryData} />
-          )}
+                     {analysisResult.type === "correlation_heatmap" && (
+             <CorrelationMatrix data={analysisResult.data as StatisticalSummaryData} />
+           )}
 
           {analysisResult.type === "missing_data" && (
             <MissingDataOverview data={analysisResult.data as StatisticalSummaryData} />
@@ -312,14 +312,14 @@ const TrialPage = () => {
             />
           )}
 
-          {analysisResult.type === "heatmap" && analysisResult.xKey && analysisResult.yKey && analysisResult.valueKey && (
-            <HeatmapComponent 
-              data={analysisResult.data as VisualizationData} 
-              xKey={analysisResult.xKey} 
-              yKey={analysisResult.yKey} 
-              valueKey={analysisResult.valueKey} 
-            />
-          )}
+                     {analysisResult.type === "custom_heatmap" && analysisResult.xKey && analysisResult.yKey && analysisResult.valueKey && (
+             <HeatmapComponent 
+               data={analysisResult.data as VisualizationData} 
+               xKey={analysisResult.xKey} 
+               yKey={analysisResult.yKey} 
+               valueKey={analysisResult.valueKey} 
+             />
+           )}
         </div>
       )}
     </div>
