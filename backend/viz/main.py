@@ -41,13 +41,14 @@ def load_session(session_id):
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     content = await file.read()
-    preview = parse_file(file.filename, content)
+    preview, full_data = parse_file(file.filename, content)
     session_id = str(uuid.uuid4())
 
-    # Store the preview in memory for trial retrieval
+    # Store both preview and full data for retrieval
     session_data = {
         "filename": file.filename,
-        "preview": preview
+        "preview": preview,
+        "full_data": full_data
     }
     
     save_session(session_id, session_data)
@@ -106,8 +107,9 @@ async def get_statistical_summary(sessionId: str):
     if content is None:
         return JSONResponse(status_code=404, content={"error": "Session not found"})
 
-    preview = content["preview"]
-    df = pd.DataFrame(preview[1:], columns=preview[0])
+    # Use preview data for trial space (5 rows)
+    data = content["preview"]
+    df = pd.DataFrame(data[1:], columns=data[0])
     summary = df.describe(include="all").fillna("").to_dict()
     return {"summary": summary}
 
@@ -117,8 +119,9 @@ def correlation_matrix(sessionId: str):
     if content is None:
         return JSONResponse(status_code=404, content={"error": "Session not found"})
 
-    preview = content["preview"]
-    df = pd.DataFrame(preview[1:], columns=preview[0])
+    # Use preview data for trial space (5 rows)
+    data = content["preview"]
+    df = pd.DataFrame(data[1:], columns=data[0])
     
     numeric_df = df.select_dtypes(include="number")
     corr = numeric_df.corr().round(2)
@@ -131,8 +134,9 @@ def missing_data(sessionId: str):
     if content is None:
         return JSONResponse(status_code=404, content={"error": "Session not found"})
 
-    preview = content["preview"]
-    df = pd.DataFrame(preview[1:], columns=preview[0])
+    # Use preview data for trial space (5 rows)
+    data = content["preview"]
+    df = pd.DataFrame(data[1:], columns=data[0])
 
     missing = df.isnull().sum()
     percent = (missing / len(df) * 100).round(2)
@@ -150,8 +154,9 @@ def outlier_detection(sessionId: str):
     if content is None:
         return JSONResponse(status_code=404, content={"error": "Session not found"})
 
-    preview = content["preview"]
-    df = pd.DataFrame(preview[1:], columns=preview[0])
+    # Use preview data for trial space (5 rows)
+    data = content["preview"]
+    df = pd.DataFrame(data[1:], columns=data[0])
 
     numeric_df = df.select_dtypes(include="number")
     outliers = {}
@@ -173,6 +178,18 @@ async def get_trial_preview(sessionId: str = Query(...)):
         return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
     return session_data
+
+@app.get("/full-data")
+async def get_full_data(sessionId: str = Query(...)):
+    session_data = load_session(sessionId)
+    if not session_data:
+        return JSONResponse(status_code=404, content={"detail": "Session not found"})
+
+    full_data = session_data.get("full_data")
+    if not full_data:
+        return JSONResponse(status_code=404, content={"detail": "Full data not found"})
+
+    return {"data": full_data}
 
 # Bar Chart endpoints
 @app.post("/api/bar-chart")
@@ -207,8 +224,9 @@ async def get_bar_chart(sessionId: str = Query(...), xKey: str = Query(...), yKe
     if content is None:
         return JSONResponse(status_code=404, content={"error": "Session not found"})
 
-    preview = content["preview"]
-    df = pd.DataFrame(preview[1:], columns=preview[0])
+    # Use preview data for trial space (5 rows)
+    data = content["preview"]
+    df = pd.DataFrame(data[1:], columns=data[0])
     
     # Validate columns exist
     if xKey not in df.columns or yKey not in df.columns:
@@ -270,8 +288,9 @@ async def get_line_graph(sessionId: str = Query(...), xKey: str = Query(...), yK
     if content is None:
         return JSONResponse(status_code=404, content={"error": "Session not found"})
 
-    preview = content["preview"]
-    df = pd.DataFrame(preview[1:], columns=preview[0])
+    # Use preview data for trial space (5 rows)
+    data = content["preview"]
+    df = pd.DataFrame(data[1:], columns=data[0])
     
     # Validate columns exist
     if xKey not in df.columns or yKey not in df.columns:
@@ -346,8 +365,9 @@ async def get_scatter_plot(sessionId: str = Query(...), xKey: str = Query(...), 
     if content is None:
         return JSONResponse(status_code=404, content={"error": "Session not found"})
 
-    preview = content["preview"]
-    df = pd.DataFrame(preview[1:], columns=preview[0])
+    # Use preview data for trial space (5 rows)
+    data = content["preview"]
+    df = pd.DataFrame(data[1:], columns=data[0])
     
     # Validate columns exist
     if xKey not in df.columns or yKey not in df.columns:
@@ -416,8 +436,9 @@ async def get_heatmap(sessionId: str = Query(...), xKey: str = Query(...), yKey:
     if content is None:
         return JSONResponse(status_code=404, content={"error": "Session not found"})
 
-    preview = content["preview"]
-    df = pd.DataFrame(preview[1:], columns=preview[0])
+    # Use preview data for trial space (5 rows)
+    data = content["preview"]
+    df = pd.DataFrame(data[1:], columns=data[0])
     
     # Validate columns exist
     if xKey not in df.columns or yKey not in df.columns or valueKey not in df.columns:

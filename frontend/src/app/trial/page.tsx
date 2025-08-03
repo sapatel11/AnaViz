@@ -15,6 +15,7 @@ import BarChartComponent from "@/components/BarChart";
 import LineGraphComponent from "@/components/LineGraph";
 import ScatterPlotComponent from "@/components/ScatterPlot";
 import HeatmapComponent from "@/components/Heatmap";
+import { useRouter } from "next/navigation";
 
 type StatisticalSummaryData = Record<string, Record<string, string | number>>;
 type VisualizationData = { [key: string]: string | number }[];
@@ -28,6 +29,7 @@ type AnalysisResult = {
 
 const TrialPage = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const sessionId = searchParams.get("sessionId");
   const selectedAnalysis = searchParams.get("selectedAnalysis");
   const xKeyFromUrl = searchParams.get("xKey");
@@ -39,6 +41,25 @@ const TrialPage = () => {
   const [selectedXKey, setSelectedXKey] = useState<string>("");
   const [selectedYKey, setSelectedYKey] = useState<string>("");
   const [selectedValueKey, setSelectedValueKey] = useState<string>("");
+  
+  // State for checkbox selections
+  const [selectedAnalysisOptions, setSelectedAnalysisOptions] = useState<string[]>([]);
+  const [selectedVisualizationOptions, setSelectedVisualizationOptions] = useState<string[]>([]);
+  
+  // Analysis and visualization options (same as in Navbar)
+  const analysisOptions = [
+    { label: "Statistical Summary", value: "summary" },
+    { label: "Correlation Matrix", value: "correlation" },
+    { label: "Missing Data Overview", value: "missing" },
+    { label: "Outlier Detection", value: "outliers" },
+  ];
+
+  const visualizationOptions = [
+    { label: "Bar Chart", value: "bar-chart" },
+    { label: "Line Graph", value: "line-graph" },
+    { label: "Scatter Plot", value: "scatter-plot" },
+    { label: "Heatmap", value: "heatmap" },
+  ];
 
 
   // Fetch preview data
@@ -146,6 +167,39 @@ const TrialPage = () => {
 
   const isVisualization = selectedAnalysis && ['bar-chart', 'line-graph', 'scatter-plot', 'heatmap'].includes(selectedAnalysis);
   const isHeatmap = selectedAnalysis === 'heatmap';
+
+  // Checkbox handlers
+  const handleAnalysisCheckboxChange = (value: string) => {
+    setSelectedAnalysisOptions(prev => 
+      prev.includes(value) 
+        ? prev.filter(item => item !== value)
+        : [...prev, value]
+    );
+  };
+
+  const handleVisualizationCheckboxChange = (value: string) => {
+    setSelectedVisualizationOptions(prev => 
+      prev.includes(value) 
+        ? prev.filter(item => item !== value)
+        : [...prev, value]
+    );
+  };
+
+  const handleGenerateFullAnalysis = () => {
+    if (!sessionId) return;
+    
+    const params = new URLSearchParams();
+    params.append('sessionId', sessionId);
+    
+    if (selectedAnalysisOptions.length > 0) {
+      params.append('analysis', selectedAnalysisOptions.join(','));
+    }
+    if (selectedVisualizationOptions.length > 0) {
+      params.append('visualizations', selectedVisualizationOptions.join(','));
+    }
+    
+    router.push(`/full-analysis?${params.toString()}`);
+  };
 
   return (
     <div className="min-h-screen pt-20">
@@ -322,6 +376,74 @@ const TrialPage = () => {
            )}
         </div>
       )}
+
+      {/* Checkbox Selection Section */}
+      <div className="max-w-5xl mx-auto py-10 px-4">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-8">
+          <h2 className="text-2xl font-bold text-amber-700 mb-6 text-center">
+            Select Analysis & Visualizations for Full Dataset
+          </h2>
+          <p className="text-amber-600 text-center mb-8">
+            Choose the analysis and visualizations you'd like to see for your entire dataset
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Analysis Options */}
+            <div>
+              <h3 className="text-xl font-semibold text-amber-700 mb-4">Analysis</h3>
+              <div className="space-y-3">
+                {analysisOptions.map((option) => (
+                  <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedAnalysisOptions.includes(option.value)}
+                      onChange={() => handleAnalysisCheckboxChange(option.value)}
+                      className="w-5 h-5 text-amber-600 bg-white border-2 border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
+                    />
+                    <span className="text-amber-700 font-medium">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Visualization Options */}
+            <div>
+              <h3 className="text-xl font-semibold text-amber-700 mb-4">Visualizations</h3>
+              <div className="space-y-3">
+                {visualizationOptions.map((option) => (
+                  <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedVisualizationOptions.includes(option.value)}
+                      onChange={() => handleVisualizationCheckboxChange(option.value)}
+                      className="w-5 h-5 text-amber-600 bg-white border-2 border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
+                    />
+                    <span className="text-amber-700 font-medium">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Generate Button */}
+          <div className="mt-8 text-center">
+            <button
+              onClick={handleGenerateFullAnalysis}
+              disabled={selectedAnalysisOptions.length === 0 && selectedVisualizationOptions.length === 0}
+              className={`px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
+                (selectedAnalysisOptions.length === 0 && selectedVisualizationOptions.length === 0)
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:scale-105'
+              }`}
+            >
+              Generate Full Analysis ({selectedAnalysisOptions.length + selectedVisualizationOptions.length} selected)
+            </button>
+            {(selectedAnalysisOptions.length === 0 && selectedVisualizationOptions.length === 0) && (
+              <p className="text-amber-600 text-sm mt-2">Please select at least one option to continue</p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
