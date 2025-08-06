@@ -193,6 +193,15 @@ const FullAnalysisPage = () => {
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Column selection state for each visualization type
+  const [columnSelections, setColumnSelections] = useState<{
+    [key: string]: {
+      xKey: string;
+      yKey: string;
+      valueKey?: string;
+    };
+  }>({});
 
   // Fetch full dataset
   useEffect(() => {
@@ -287,48 +296,67 @@ const FullAnalysisPage = () => {
             const option = visualizationOptions.find(opt => opt.value === visualizationType);
             if (!option) continue;
 
-            if (visualizationType === "bar-chart" && defaultXKey && defaultYKey) {
-              const data = processVisualizationData(fullData, defaultXKey, defaultYKey);
+            // Initialize default column selections if not already set
+            if (!columnSelections[visualizationType]) {
+              const defaultSelection = {
+                xKey: defaultXKey,
+                yKey: defaultYKey,
+                ...(visualizationType === "heatmap" && { valueKey: defaultValueKey })
+              };
+              setColumnSelections(prev => ({
+                ...prev,
+                [visualizationType]: defaultSelection
+              }));
+            }
+
+            const currentSelection = columnSelections[visualizationType] || {
+              xKey: defaultXKey,
+              yKey: defaultYKey,
+              ...(visualizationType === "heatmap" && { valueKey: defaultValueKey })
+            };
+
+            if (visualizationType === "bar-chart") {
+              const data = processVisualizationData(fullData, currentSelection.xKey, currentSelection.yKey);
               if (isMounted) {
                 results.push({
                   type: "bar_chart",
                   data: data,
-                  xKey: defaultXKey,
-                  yKey: defaultYKey,
+                  xKey: currentSelection.xKey,
+                  yKey: currentSelection.yKey,
                   title: option.title,
                 });
               }
-            } else if (visualizationType === "line-graph" && defaultXKey && defaultYKey) {
-              const data = processVisualizationData(fullData, defaultXKey, defaultYKey);
+            } else if (visualizationType === "line-graph") {
+              const data = processVisualizationData(fullData, currentSelection.xKey, currentSelection.yKey);
               if (isMounted) {
                 results.push({
                   type: "line_graph",
                   data: data,
-                  xKey: defaultXKey,
-                  yKey: defaultYKey,
+                  xKey: currentSelection.xKey,
+                  yKey: currentSelection.yKey,
                   title: option.title,
                 });
               }
-            } else if (visualizationType === "scatter-plot" && defaultXKey && defaultYKey) {
-              const data = processVisualizationData(fullData, defaultXKey, defaultYKey);
+            } else if (visualizationType === "scatter-plot") {
+              const data = processVisualizationData(fullData, currentSelection.xKey, currentSelection.yKey);
               if (isMounted) {
                 results.push({
                   type: "scatter_plot",
                   data: data,
-                  xKey: defaultXKey,
-                  yKey: defaultYKey,
+                  xKey: currentSelection.xKey,
+                  yKey: currentSelection.yKey,
                   title: option.title,
                 });
               }
-            } else if (visualizationType === "heatmap" && defaultXKey && defaultYKey && defaultValueKey) {
-              const data = processVisualizationData(fullData, defaultXKey, defaultYKey, defaultValueKey);
+            } else if (visualizationType === "heatmap") {
+              const data = processVisualizationData(fullData, currentSelection.xKey, currentSelection.yKey, currentSelection.valueKey);
               if (isMounted) {
                 results.push({
                   type: "custom_heatmap",
                   data: data,
-                  xKey: defaultXKey,
-                  yKey: defaultYKey,
-                  valueKey: defaultValueKey,
+                  xKey: currentSelection.xKey,
+                  yKey: currentSelection.yKey,
+                  valueKey: currentSelection.valueKey,
                   title: option.title,
                 });
               }
@@ -452,36 +480,150 @@ const FullAnalysisPage = () => {
                   <OutlierTable data={result.data as StatisticalSummaryData} />
                 )}
 
-                {result.type === "bar_chart" && result.xKey && result.yKey && (
+                {(result.type === "bar_chart" || result.type === "line_graph" || result.type === "scatter_plot" || result.type === "custom_heatmap") && fullData && (
+                  <div className="mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-amber-700 mb-3">
+                          X-Axis Column
+                        </label>
+                        <select
+                          value={columnSelections[result.type]?.xKey || result.xKey || ""}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setColumnSelections(prev => ({
+                              ...prev,
+                              [result.type]: {
+                                ...prev[result.type],
+                                xKey: newValue
+                              }
+                            }));
+                          }}
+                          className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 font-medium transition-colors hover:border-amber-300"
+                        >
+                          <option value="" className="text-amber-600">Select X column</option>
+                          {fullData[0].map((col, i) => (
+                            <option key={i} value={col} className="text-amber-800">{col}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-semibold text-amber-700 mb-3">
+                          Y-Axis Column
+                        </label>
+                        <select
+                          value={columnSelections[result.type]?.yKey || result.yKey || ""}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setColumnSelections(prev => ({
+                              ...prev,
+                              [result.type]: {
+                                ...prev[result.type],
+                                yKey: newValue
+                              }
+                            }));
+                          }}
+                          className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 font-medium transition-colors hover:border-amber-300"
+                        >
+                          <option value="" className="text-amber-600">Select Y column</option>
+                          {fullData[0].map((col, i) => (
+                            <option key={i} value={col} className="text-amber-800">{col}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {result.type === "custom_heatmap" && (
+                        <div>
+                          <label className="block text-sm font-semibold text-amber-700 mb-3">
+                            Value Column
+                          </label>
+                          <select
+                            value={columnSelections[result.type]?.valueKey || result.valueKey || ""}
+                            onChange={(e) => {
+                              const newValue = e.target.value;
+                              setColumnSelections(prev => ({
+                                ...prev,
+                                [result.type]: {
+                                  ...prev[result.type],
+                                  valueKey: newValue
+                                }
+                              }));
+                            }}
+                            className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-amber-800 font-medium transition-colors hover:border-amber-300"
+                          >
+                            <option value="" className="text-amber-600">Select value column</option>
+                            {fullData[0].map((col, i) => (
+                              <option key={i} value={col} className="text-amber-800">{col}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-6 flex justify-end">
+                      <button
+                        onClick={() => {
+                          // Re-process the visualization with new column selections
+                          const updatedResults = analysisResults.map(r => {
+                            if (r.type === result.type) {
+                              const selection = columnSelections[result.type];
+                              const data = processVisualizationData(
+                                fullData!,
+                                selection?.xKey || r.xKey!,
+                                selection?.yKey || r.yKey!,
+                                result.type === "custom_heatmap" ? (selection?.valueKey || r.valueKey!) : undefined
+                              );
+                              return {
+                                ...r,
+                                data,
+                                xKey: selection?.xKey || r.xKey!,
+                                yKey: selection?.yKey || r.yKey!,
+                                ...(result.type === "custom_heatmap" && { valueKey: selection?.valueKey || r.valueKey! })
+                              };
+                            }
+                            return r;
+                          });
+                          setAnalysisResults(updatedResults);
+                        }}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold transition hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        Update Visualization
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {result.type === "bar_chart" && (columnSelections[result.type]?.xKey || result.xKey) && (columnSelections[result.type]?.yKey || result.yKey) && (
                   <BarChartComponent 
                     data={result.data as VisualizationData} 
-                    xKey={result.xKey} 
-                    yKey={result.yKey} 
+                    xKey={columnSelections[result.type]?.xKey || result.xKey!} 
+                    yKey={columnSelections[result.type]?.yKey || result.yKey!} 
                   />
                 )}
 
-                {result.type === "line_graph" && result.xKey && result.yKey && (
+                {result.type === "line_graph" && (columnSelections[result.type]?.xKey || result.xKey) && (columnSelections[result.type]?.yKey || result.yKey) && (
                   <LineGraphComponent 
                     data={result.data as VisualizationData} 
-                    xKey={result.xKey} 
-                    yKey={result.yKey} 
+                    xKey={columnSelections[result.type]?.xKey || result.xKey!} 
+                    yKey={columnSelections[result.type]?.yKey || result.yKey!} 
                   />
                 )}
 
-                {result.type === "scatter_plot" && result.xKey && result.yKey && (
+                {result.type === "scatter_plot" && (columnSelections[result.type]?.xKey || result.xKey) && (columnSelections[result.type]?.yKey || result.yKey) && (
                   <ScatterPlotComponent 
                     data={result.data as VisualizationData} 
-                    xKey={result.xKey} 
-                    yKey={result.yKey} 
+                    xKey={columnSelections[result.type]?.xKey || result.xKey!} 
+                    yKey={columnSelections[result.type]?.yKey || result.yKey!} 
                   />
                 )}
 
-                {result.type === "custom_heatmap" && result.xKey && result.yKey && result.valueKey && (
+                {result.type === "custom_heatmap" && (columnSelections[result.type]?.xKey || result.xKey) && (columnSelections[result.type]?.yKey || result.yKey) && (columnSelections[result.type]?.valueKey || result.valueKey) && (
                   <HeatmapComponent 
                     data={result.data as VisualizationData} 
-                    xKey={result.xKey} 
-                    yKey={result.yKey} 
-                    valueKey={result.valueKey} 
+                    xKey={columnSelections[result.type]?.xKey || result.xKey!} 
+                    yKey={columnSelections[result.type]?.yKey || result.yKey!} 
+                    valueKey={columnSelections[result.type]?.valueKey || result.valueKey!} 
                   />
                 )}
               </div>
